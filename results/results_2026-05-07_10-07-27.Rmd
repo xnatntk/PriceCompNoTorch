@@ -18,32 +18,23 @@ library(gridExtra)
 
 ## Wstęp
 
-● Celem niniejszej pracy jest opracowanie oraz ocena modelu sieci neuronowej
-przeznaczonego do klasyfikacji spółek o podobnej dynamice wzrostu wchodzących w skład indeksu NASDAQ.
-● Zadaniem modelu będzie przypisanie spółki do odpowiedniej kategorii na podstawie jej
-historycznych notowań giełdowych.
-● Proces klasyfikacji zostanie oparty na wybranych cechach opisujących zachowanie kursu,
-takich jak nachylenie trendu czy odchylenie standardowe reszt modelu regresyjnego.
-● Dane wejściowe zostały pobrane z serwisu Yahoo Finance. Do analizy zostały użyte ceny
-zamknięcia spółek giełdowych (dzienne), notowanych na NASDAQ od przynajmniej 5-ciu lat.
-Analizowano notowania spółek z ostatnich 3000 dni, przy czym były to spółki obecne na
-giełdzie przynajmniej przez 5 lat.
-● W zbiorze uczącym znalazło się 1821 podmiotów, a w testowym 456
-● Należy rozróżnić spółki na podstawie tempa wzrostu notowań (zostanie wybrany i
-wyestymowany model najlepiej opisujący zmienność danych (liniowy, wykładniczy
-lub wielomianowy)
+
+Celem niniejszej pracy jest opracowanie oraz analiza działania sieci neuronowej przeznaczonej do klasyfikacji spółek giełdowych o podobnej dynamice wzrostu notowań wchodzących w skład indeksu NASDAQ.
+
+Zadaniem modelu jest grupowanie spółek na podstawie historycznych danych giełdowych bez wcześniejszego definiowania klas. Proces klasyfikacji oparto na cechach opisujących zachowanie szeregów czasowych, takich jak nachylenie trendu, krzywizna modelu czy błędy dopasowania regresji.
+
+Dane wejściowe zostały pobrane z serwisu Yahoo Finance i obejmują dzienne ceny zamknięcia spółek notowanych na giełdzie NASDAQ przez co najmniej pięć lat. W analizie wykorzystano ostatnie 3000 dni notowań dla każdej spółki. Zbiór uczący obejmował 1821 spółek, natomiast zbiór testowy 456 spółek.
+
+Klasyfikacja spółek została oparta na analizie dynamiki zmian notowań giełdowych. Dla każdej spółki estymowany jest model najlepiej opisujący przebieg danych (liniowy, wykładniczy lub wielomianowy), a parametry uzyskanego dopasowania wykorzystywane są jako cechy wejściowe sieci.
+
 
 ## Problem mierzenia dokładności
 
-Jeśli klasy zostaną wprowadzone ręcznie, model może faworyzować niektóre parametry, I
-pomijać cechy danych, które są trudne do zauważenia, ale które mają znaczący wpływ na
-wyniki. W tym przypadku nie można ,,ręcznie’’ przypisać do danych pożądanych wyników
-klasyfikacji. Byłyby one nieobiektywne.
-● W konsekwencji, proces budowy modelu powinien wykorzystywać uczenie nienadzorowane:
-model sam podzieli spółki na sensowne grupy bez wcześniejszych założeń.
+W klasycznych problemach klasyfikacyjnych jakość modelu można oceniać poprzez porównanie przewidywanych klas z rzeczywistymi etykietami. W analizowanym problemie takie podejście nie jest jednak możliwe, ponieważ dane nie posiadają wcześniej zdefiniowanych klas.
 
-Ponieważ dane nie mogą być ręcznie podzielone na klasy przed treningiem, sprawdzenie dokładności modelu nie może polegać na policzeniu odsetka poprawnych przyporządkowań do klas.
-Zamiast tego jako miary dokładności użyto wartości cosinusa kąta między zwycięskim neuronem a wektorem wejściowym (im lepsze dopasowanie, tym cosinus kąta jest bliżej 1 (wówczas kąt jest bliski 0)).
+Ręczne przypisanie spółek do kategorii mogłoby prowadzić do subiektywnych ocen oraz faworyzowania wybranych parametrów opisujących przebieg notowań giełdowych. Z tego względu zastosowano uczenie nienadzorowane, w którym model samodzielnie identyfikuje grupy podobnych obserwacji.
+
+Do oceny jakości dopasowania wykorzystano cosinus kąta pomiędzy wektorem wejściowym a wektorem wag zwycięskiego neuronu. Wartość cosinusa bliska 1 oznacza wysokie podobieństwo pomiędzy wektorami, a tym samym lepsze dopasowanie obserwacji do reprezentującego ją neuronu.
 
 
 ## Parametry wejściowe wektora
@@ -132,6 +123,7 @@ plot_l2 <- ggplot(comp_s1__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 grid.arrange(plot_l1, plot_l2, ncol = 2)
 ```
+Wraz ze wzrostem liczby neuronów pierwszej warstwy rosła wartość cosinusa podobieństwa zarówno dla zbioru uczącego, jak i testowego. Najlepsze wyniki uzyskano dla 80 neuronów. Sieć jednowarstwowa osiągała wyższe wartości cosine similarity niż sieć dwuwarstwowa dla każdej analizowanej konfiguracji.
 
 ## Series 2: Number of L2 Neurons (L1=40)
 
@@ -201,6 +193,7 @@ plot_combined <- ggplot(all_data, aes(x = factor(Param), y = Value, fill = Metri
 
 plot_combined
 ```
+Zwiększanie liczby neuronów drugiej warstwy powodowało stopniowe pogarszanie wyników. Najlepszą skuteczność uzyskano dla najmniejszej liczby neuronów L2. Może to sugerować, że dodatkowa warstwa prowadziła do utraty części informacji o strukturze danych.
 
 ## Series 3: Learning Rate (L1=40, L2=5)
 
@@ -263,6 +256,7 @@ plot_l2 <- ggplot(comp_s3__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 grid.arrange(plot_l1, plot_l2, ncol = 2)
 ```
+Wyższe wartości learning rate prowadziły do lepszych wyników zarówno dla zbioru treningowego, jak i testowego. Najlepsze rezultaty uzyskano dla η = 0.9. W przypadku sieci dwuwarstwowej wpływ learning rate był bardziej widoczny niż w architekturze jednowarstwowej.
 
 ## Series 4: Learning Rate Decay (L1=40, L2=5)
 
@@ -326,6 +320,7 @@ plot_l2 <- ggplot(comp_s4__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 grid.arrange(plot_l1, plot_l2, ncol = 2)
 ```
+Wzrost współczynnika decay poprawiał jakość dopasowania modelu. Najwyższe wartości cosine similarity uzyskano dla decay bliskiego 0.99, co wskazuje, że wolniejsze zmniejszanie learning rate stabilizowało proces uczenia.
 
 ## Series 5: Number of Epochs (L1=40, L2=5)
 
@@ -389,6 +384,7 @@ plot_l2 <- ggplot(comp_s5__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 grid.arrange(plot_l1, plot_l2, ncol = 2)
 ```
+Zwiększanie liczby epok miało stosunkowo niewielki wpływ na wyniki modelu. Oznacza to, że sieć osiągała stabilną konwergencję już po niewielkiej liczbie iteracji.
 
 ## Series 6: Different Activation Functions (L1=40, L2=5)
 
@@ -432,6 +428,7 @@ plot_l2 <- ggplot(comp_s6__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 plot_l2
 ```
+Najlepsze wyniki uzyskano dla funkcji aktywacji inverse_sq oraz gaussian. Funkcja sigmoid osiągała wyraźnie gorsze rezultaty, co może wynikać z nadmiernego spłaszczenia wartości aktywacji.
 
 ## Series 7: Train Ratio (L1=40, L2=5)
 
@@ -495,6 +492,7 @@ plot_l2 <- ggplot(comp_s7__l2_long, aes(x = factor(Param), y = Value, fill = Met
 
 grid.arrange(plot_l1, plot_l2, ncol = 2)
 ```
+Zmiana proporcji podziału danych na zbiór treningowy i testowy miała niewielki wpływ na końcowe wyniki modelu. Najlepsze rezultaty dla sieci jednowarstwowej uzyskano dla train ratio = 0.7–0.8, co sugeruje dobrą stabilność modelu względem podziału danych.
 
 ## Best Configuration
 
